@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fake Raydium Dashboard - MEV</title>
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    .dashboard { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Fake Raydium Dashboard - MEV</h2>
+  <div id="status">Not connected</div>
+  <div id="info" class="dashboard" style="display:none;">
+    <p><strong>Fake Owner Address:</strong> <span id="fakeAddress">5XEvKkSUcLd7Bu7MF5yfnrUxu4dK31VgXH5r7tQHf2q2</span></p>
+    <p><strong>Connected Wallet:</strong> <span id="realAddress"></span></p>
+    <p><strong>Token:</strong> MEV (Mint: 72jUy2xXm8N7jxY8BVcELnvaQbuHZDSSLoJeHGpi1MgF)</p>
+    <button id="removeLp">Remove Liquidity</button>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const infoEl = document.getElementById('info');
+    const fakeAddressEl = document.getElementById('fakeAddress');
+    const realAddressEl = document.getElementById('realAddress');
+    const logEl = document.getElementById('log');
+    const removeBtn = document.getElementById('removeLp');
+
+    async function connectWallet() {
+      if ('solana' in window) {
+        try {
+          const resp = await window.solana.connect();
+          const pubKey = resp.publicKey.toString();
+          statusEl.textContent = 'Connected';
+          infoEl.style.display = 'block';
+          realAddressEl.textContent = pubKey;
+        } catch (err) {
+          statusEl.textContent = 'Connection rejected';
+        }
+      } else {
+        alert('Phantom wallet not found.');
+      }
+    }
+
+    removeBtn.addEventListener('click', () => {
+      const real = realAddressEl.textContent;
+      const fake = fakeAddressEl.textContent;
+      logEl.innerText = `Trying to act as ${fake} while connected as ${real}...\nThis is a visual-only dashboard.`;
+    });
+
+    const connectBtn = document.createElement('button');
+    connectBtn.textContent = 'Connect Phantom Wallet';
+    connectBtn.onclick = connectWallet;
+    document.body.insertBefore(connectBtn, statusEl);
+  </script>
+</body>
+</html>
