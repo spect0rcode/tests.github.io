@@ -1,0 +1,31 @@
+<!-- controlled.html -->
+<html>
+<body>
+  <h1>🎯 Controlled System</h1>
+  <video autoplay muted id="viewer"></video>
+
+  <script>
+    const id = 'controlled_' + Math.random().toString(36).slice(2);
+    const ws = new WebSocket('ws://your-server-ip:8080');
+    const pc = new RTCPeerConnection();
+
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'register', id }));
+
+    ws.onmessage = async ({ data }) => {
+      const msg = JSON.parse(data);
+      if (msg.type === 'signal') {
+        await pc.setRemoteDescription(msg.payload);
+        if (msg.payload.type === 'offer') {
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: 'signal', id, target: msg.from, payload: pc.localDescription }));
+        }
+      }
+    };
+
+    navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }).then(stream => {
+      for (const track of stream.getTracks()) pc.addTrack(track, stream);
+    });
+  </script>
+</body>
+</html>

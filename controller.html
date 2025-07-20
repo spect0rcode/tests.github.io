@@ -1,0 +1,37 @@
+<!-- controller.html -->
+<html>
+<body>
+  <h1>🧠 Controller</h1>
+  <video autoplay muted id="remoteView"></video>
+
+  <script>
+    const id = 'controller_' + Math.random().toString(36).slice(2);
+    const target = prompt("Enter Controlled Client ID:");
+    const ws = new WebSocket('ws://your-server-ip:8080');
+    const pc = new RTCPeerConnection();
+
+    ws.onopen = async () => {
+      ws.send(JSON.stringify({ type: 'register', id }));
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: false });
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      ws.send(JSON.stringify({ type: 'signal', id, target, payload: pc.localDescription }));
+    };
+
+    ws.onmessage = async ({ data }) => {
+      const msg = JSON.parse(data);
+      if (msg.type === 'signal') {
+        await pc.setRemoteDescription(msg.payload);
+      }
+    };
+
+    pc.ontrack = (event) => {
+      const video = document.getElementById('remoteView');
+      video.srcObject = event.streams[0];
+    };
+  </script>
+</body>
+</html>
